@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  redis:
+    environment:
+      - REDIS_PASSWORD=hunter2
+      - REDIS_PORT=6379
+    image: redis:7.2.1
+    command: /bin/sh -c "redis-server --requirepass $$REDIS_PASSWORD"
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - db:/root/redis
+    
+  model:
+    image: model-server:latest
+    restart: on-failure
+    depends_on: 
+      - redis
+    ports:
+      - "8080:80" 
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=hunter2
+      - HF_MODEL=gpt2
+
+  web:
+    image: web-server:latest
+    restart: on-failure
+    depends_on:
+      - model
+    ports:
+      - "9080:80"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=hunter2
+      - MODEL_SERVER_URL=http://model:80
+
+volumes:
+    db:
